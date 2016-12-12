@@ -2484,16 +2484,18 @@ class Container(Layer):
                     name = str(w.name)
                 else:
                     name = 'param_' + str(i)
+
                 weight_names.append(name.encode('utf8'))
-            g.attrs['weight_names'] = weight_names
-            for name, val in zip(weight_names, weight_values):
-                param_dset = g.create_dataset(name, val.shape,
-                                              dtype=val.dtype)
-                if not val.shape:
-                    # scalar
-                    param_dset[()] = val
-                else:
-                    param_dset[:] = val
+            if weight_names:
+                g.attrs['weight_names'] = weight_names
+                for name, val in zip(weight_names, weight_values):
+                    param_dset = g.create_dataset(name, val.shape,
+                                                  dtype=val.dtype)
+                    if not val.shape:
+                        # scalar
+                        param_dset[()] = val
+                    else:
+                        param_dset[:] = val
 
     def load_weights(self, filepath, by_name=False):
         '''Loads all layer weights from a HDF5 save file.
@@ -2561,6 +2563,8 @@ class Container(Layer):
             filtered_layer_names = []
             for name in layer_names:
                 g = f[name]
+                if "weight_names" not in g.attrs:
+                    continue
                 weight_names = [n.decode('utf8') for n in g.attrs['weight_names']]
                 if len(weight_names):
                     filtered_layer_names.append(name)
@@ -2576,6 +2580,8 @@ class Container(Layer):
             weight_value_tuples = []
             for k, name in enumerate(layer_names):
                 g = f[name]
+                if "weight_names" not in g.attrs:
+                    continue
                 weight_names = [n.decode('utf8') for n in g.attrs['weight_names']]
                 weight_values = [g[weight_name] for weight_name in weight_names]
                 layer = flattened_layers[k]
